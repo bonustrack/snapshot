@@ -253,3 +253,18 @@ textarea {
   overflow: hidden;
   text-overflow: ellipsis;
 }
+
+.responsivenav {
+  min-width: max-content;
+  .responsivenav-item {
+    &.router-link-exact-active {
+      border-left: none;
+      border-bottom: 3px solid;
+      @include breakpoint(lg) {
+        border-left: 3px solid;
+        border-bottom: none;
+        padding-left: 21px !important;
+      }
+    }
+  }
+}

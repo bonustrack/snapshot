@@ -12,6 +12,7 @@ import Playground from '@/views/Playground.vue';
 import Delegate from '@/views/Delegate.vue';
 import Timeline from '@/views/Timeline.vue';
 import Space from '@/views/Space.vue';
+import Proposals from '@/views/Proposals.vue';
 import About from '@/views/About.vue';
 
 const domainName = window.location.hostname;
@@ -28,7 +29,13 @@ const routes: any[] = [
   {
     path: '/',
     name: 'home',
-    component: domains[domainName] ? Space : Home
+    component: Home,
+    beforeEnter(to, from, next) {
+      if (domains[domainName]) {
+        next({ name: 'space-proposals' });
+      }
+      next();
+    }
   },
   { path: '/setup', name: 'setup', component: Setup },
   { path: '/:key/settings/:from?', name: 'settings', component: Settings },
@@ -62,16 +69,13 @@ const routes: any[] = [
     beforeEnter
   },
   {
-    path: '/:key',
-    name: 'proposals',
+    path: '/:key?',
+    name: 'space',
     component: Space,
-    beforeEnter
-  },
-  {
-    path: '/:key/about',
-    name: 'about',
-    component: About,
-    beforeEnter
+    children: [
+      { path: '', name: 'space-proposals', component: Proposals },
+      { path: 'about', name: 'space-about', component: About }
+    ]
   },
   { path: '/*', name: 'error-404', beforeEnter: (to, from, next) => next('/') }
 ];

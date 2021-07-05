@@ -1,21 +1,28 @@
 <template>
-  <div style="position: fixed; width: 240px">
-    <Block :slim="true" class="overflow-hidden">
-      <div class="text-center border-bottom header-bg">
-        <Token :space="space" symbolIndex="space" size="80" class="mt-3 mb-2" />
-        <h3 class="mb-3 px-4">{{ space.name }}</h3>
+  <Block :slim="true" class="overflow-hidden">
+    <div class="text-center border-bottom header-bg pb-2">
+      <Token :space="space" symbolIndex="space" size="80" class="mt-3 mb-2" />
+      <div class="d-lg-block v-align-middle mt-0">
+        <h3 class="px-4">{{ space.name }}</h3>
       </div>
-      <div class="py-3">
+    </div>
+    <div class="overflow-auto menu-tabs text-center text-lg-left">
+      <div class="responsivenav pt-2 py-lg-3 px-4 px-lg-0">
         <router-link
-          :to="{ name: 'proposals', params: { key: space.key } }"
+          :to="{
+            name: domain ? 'home' : 'space-proposals',
+            params: { key: space.key }
+          }"
+          :class="
+            $route.name === 'space-proposals' && 'router-link-exact-active'
+          "
           v-text="$t('proposals.header')"
-          :class="$route.name === 'proposals' && 'router-link-exact-active'"
-          class="d-block px-4 py-2 sidenav-item"
+          class="d-lg-block d-inline-block px-3 px-lg-4 py-2 responsivenav-item"
         />
         <router-link
           :to="{ name: 'create', params: { key: space.key } }"
           v-text="$t('proposals.new')"
-          class="d-block px-4 py-2 sidenav-item"
+          class="d-lg-block d-inline-block px-3 px-lg-4 py-2 responsivenav-item"
         />
         <router-link
           v-if="
@@ -23,23 +30,22 @@
           "
           :to="{ name: 'delegate', params: { key: space.key } }"
           v-text="$t('delegate.header')"
-          class="d-block px-4 py-2 sidenav-item"
+          class="d-lg-block d-inline-block px-3 px-lg-4 py-2 responsivenav-item"
         />
         <router-link
-          :to="{ name: 'about', params: { key: space.key } }"
+          :to="{ name: 'space-about', params: { key: space.key } }"
           v-text="$t('about')"
-          :class="$route.name === 'about' && 'router-link-exact-active'"
-          class="d-block px-4 py-2 sidenav-item"
+          class="d-lg-block d-inline-block px-3 px-lg-4 py-2 responsivenav-item"
         />
         <router-link
           v-if="isAdmin"
           :to="{ name: 'settings' }"
           v-text="$t('settings.header')"
-          class="d-block px-4 py-2 sidenav-item"
+          class="d-lg-block d-inline-block px-3 px-lg-4 py-2 responsivenav-item"
         />
       </div>
-    </Block>
-  </div>
+    </div>
+  </Block>
 </template>
 
 <script>
