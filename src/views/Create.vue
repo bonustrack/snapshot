@@ -1,20 +1,23 @@
 <script setup>
-import { ref, watch, watchEffect, computed, onMounted } from 'vue';
+import { ref, watchEffect, computed, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useStore } from 'vuex';
 import draggable from 'vuedraggable';
+import { useI18n } from 'vue-i18n';
 import getProvider from '@snapshot-labs/snapshot.js/src/utils/provider';
 import { getBlockNumber } from '@snapshot-labs/snapshot.js/src/utils/web3';
 import { getInstance } from '@snapshot-labs/lock/plugins/vue3';
 import { useModal } from '@/composables/useModal';
 import { useTerms } from '@/composables/useTerms';
-import { useQuery, useResult } from '@vue/apollo-composable';
 import { PROPOSAL_QUERY } from '@/helpers/queries';
 import validations from '@snapshot-labs/snapshot.js/src/validations';
 import { clone } from '@/helpers/utils';
+import { apolloClient } from '@/apollo';
+import client from '@/helpers/clientEIP712';
 
 const route = useRoute();
 const router = useRouter();
+const { t } = useI18n();
 const store = useStore();
 const auth = getInstance();
 
@@ -85,6 +88,10 @@ const isValid = computed(() => {
   );
 });
 
+const proposal = computed(() => {
+  return { ...form, choices };
+});
+
 function addChoice(num) {
   for (let i = 1; i <= num; i++) {
     counter.value++;
@@ -106,23 +113,45 @@ async function handleSubmit() {
   loading.value = true;
   form.value.snapshot = parseInt(form.value.snapshot);
   form.value.choices = choices.value.map(choice => choice.text);
-  form.value.metadata.network = space.value.network;
-  form.value.metadata.strategies = space.value.strategies;
+  let plugins = {};
+  if (Object.keys(form.value.metadata?.plugins).length !== 0)
+    plugins = form.value.metadata.plugins;
+
   try {
-    const { ipfsHash } = await store.dispatch('send', {
+    const result = await client.proposal(auth.web3, web3Account.value, {
+      from: web3Account.value,
       space: space.value.key,
-      type: 'proposal',
-      payload: form.value
+      timestamp: ~~(Date.now() / 1e3),
+      type: form.value.type,
+      title: form.value.name,
+      body: form.value.body,
+      choices: form.value.choices,
+      start: form.value.start,
+      end: form.value.end,
+      snapshot: form.value.snapshot,
+      network: space.value.network,
+      strategies: JSON.stringify(space.value.strategies),
+      plugins: JSON.stringify(plugins),
+      metadata: JSON.stringify({})
     });
+    console.log('Result', result);
+    store.dispatch('notify', t('notify.yourIsIn', ['proposal']));
     router.push({
       name: 'proposal',
       params: {
         key: key,
-        id: ipfsHash
+        id: result.id
       }
     });
+    console.log('Ok!', result);
   } catch (e) {
-    console.error(e);
+    if (!e.code || e.code !== 4001) {
+      console.log('Oops!', e);
+      const errorMessage = e?.error_description
+        ? `Oops, ${e.error_description}`
+        : t('notify.somethingWentWrong');
+      store.dispatch('notify', ['red', errorMessage]);
+    }
     loading.value = false;
   }
 }
@@ -143,33 +172,31 @@ onMounted(async () => {
   addChoice(2);
   blockNumber.value = await getBlockNumber(getProvider(space.value.network));
   form.value.snapshot = blockNumber.value;
-});
-
-if (from) {
-  const { result } = useQuery(PROPOSAL_QUERY, { id: from });
-  const proposal = useResult(result, null, data => data.proposal);
-
-  watch(proposal, value => {
+  if (from) {
+    const response = await apolloClient.query({
+      query: PROPOSAL_QUERY,
+      variables: {
+        id: from
+      }
+    });
+    const { title, body, choicesObj, start, end, snapshot, type } =
+      response.data.proposal;
     form.value = {
-      name: value.title,
-      body: value.body,
-      choices: value.choices,
-      start: value.start,
-      end: value.end,
-      snapshot: value.snapshot,
-      type: value.type
+      name: title,
+      body: body,
+      choices: choicesObj,
+      start: start,
+      end: end,
+      snapshot: snapshot,
+      type: type
     };
-    const { network, strategies, plugins } = value;
+    const { network, strategies, plugins } = response.data.proposal;
     form.value.metadata = { network, strategies, plugins };
-    choices.value = value.choices.map((text, key) => ({
+    choices.value = response.data.proposal.choices.map((text, key) => ({
       key,
       text
     }));
-  });
-}
-
-const proposal = computed(() => {
-  return { ...form, choices };
+  }
 });
 </script>
 

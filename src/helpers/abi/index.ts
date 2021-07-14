@@ -1,10 +1,11 @@
-const requireFile = require.context('./', true, /[\w-]+\.json$/);
+const requireFile = import.meta.glob('./*.json');
 
-export default Object.fromEntries(
-  requireFile
-    .keys()
-    .map(fileName => [
-      fileName.replace('./', '').replace('.json', ''),
-      requireFile(fileName).abi
-    ])
-);
+const files = {};
+
+for (const path in requireFile) {
+  requireFile[path]().then(file => {
+    files[path.replace('./', '').replace('.json', '')] = file.abi;
+  });
+}
+
+export default files;
